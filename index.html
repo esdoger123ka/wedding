@@ -12,6 +12,12 @@
 <meta property="og:description" content="Saturday, 26 December 2026 — Bandung">
 <meta property="og:image" content="https://esdoger123ka.github.io/wedding/assets/img/hero-wide.jpg">
 <meta property="og:type" content="website">
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+}}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500&family=Instrument+Serif:ital@0;1&family=Amiri&display=swap" rel="stylesheet">
@@ -43,6 +49,7 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
 /* ---------- FIXED BACKGROUND (changes per section) ---------- */
 #stage{position:fixed;inset:0;z-index:0;overflow:hidden;background:var(--bg)}
 #stage .bg{position:absolute;inset:0;opacity:0;transition:opacity 1.4s ease}
+#bg-venue{will-change:transform}
 #stage .bg.on{opacity:1}
 #stage img{width:100%;height:100%;object-fit:cover;transform:scale(1.08);transition:transform 9s ease-out}
 #stage .bg.on img{transform:scale(1)}
@@ -75,6 +82,18 @@ main,#bar,footer{position:relative;z-index:1}
 .js #cover.ready>*:nth-child(3){transition-delay:.15s}
 .js #cover.ready>*:nth-child(4){transition-delay:.3s}
 .js #cover>.bgc{opacity:1;transform:none}
+
+/* ---------- VENUE 3D ---------- */
+#v3d{position:fixed;inset:0;z-index:70;background:#14110e;display:none}
+#v3d.open{display:block}
+#v3d canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+#v3d .v-top{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:18px var(--gut);pointer-events:none;background:linear-gradient(rgba(20,17,14,.7),transparent)}
+#v3d .v-top>*{pointer-events:auto}
+#v3d h3{font-weight:300;font-size:clamp(22px,5vw,34px);line-height:1;letter-spacing:-.01em;text-transform:uppercase}
+#v3d .v-bot{position:absolute;left:0;right:0;bottom:0;padding:16px var(--gut) calc(20px + env(safe-area-inset-bottom,0px));display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;pointer-events:none;background:linear-gradient(transparent,rgba(20,17,14,.75))}
+#v3d .v-bot>*{pointer-events:auto}
+#v3d .v-load{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:14px;text-align:center;padding:0 var(--gut)}
+#v3d .v-load[hidden]{display:none}
 
 /* ---------- COVER ---------- */
 #cover{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;justify-content:space-between;align-items:center;text-align:center;padding:max(48px,8svh) var(--gut) max(40px,6svh);transition:opacity 1.2s ease,transform 1.2s cubic-bezier(.7,0,.2,1)}
@@ -262,7 +281,7 @@ footer{background:var(--bg);text-align:center;padding:30px var(--gut) 44px;borde
 <div id="stage" aria-hidden="true">
   <div class="bg on" data-key="mural"><picture><source media="(min-aspect-ratio:1/1)" srcset="assets/img/hero-wide.jpg"><img src="assets/img/hero-tall.jpg" alt=""></picture></div>
   <div class="bg" data-key="kaki"><img src="assets/img/koleksi-04.jpg" alt="" style="filter:brightness(.6)"></div>
-  <div class="bg" data-key="duduk"><img src="assets/img/koleksi-06.jpg" alt="" style="object-position:78% 50%;filter:brightness(.7)"></div>
+  <div class="bg" data-key="venue" id="bg-venue"><img src="assets/img/venue.jpg" alt="" style="object-position:62% 50%;filter:brightness(.62) saturate(.9)"></div>
   <div class="bg" data-key="tangga"><img src="assets/img/hitung.jpg" alt="" style="filter:brightness(.5)"></div>
   <div class="bg" data-key="lamar"><img src="assets/img/fitur.jpg" alt="" style="object-position:52% 50%"></div>
   <div class="bg" data-key="taman"><img src="assets/img/koleksi-15.jpg" alt="" style="filter:brightness(.6)"></div>
@@ -336,7 +355,7 @@ footer{background:var(--bg);text-align:center;padding:30px var(--gut) 44px;borde
 </section>
 
 <!-- EVENT -->
-<section id="acara" class="screen" data-bg="duduk">
+<section id="acara" class="screen" data-bg="venue">
   <div class="wrap" style="width:100%">
     <p class="cap rv">Save the date</p>
     <div class="datebar rv d1"><span class="d">26.12</span><span class="it" style="font-size:30px">Saturday, 2026</span></div>
@@ -442,6 +461,24 @@ footer{background:var(--bg);text-align:center;padding:30px var(--gut) 44px;borde
 </div>
 <audio id="bgm" loop preload="none"></audio>
 
+<!-- ============ VENUE 3D (dimuat hanya saat tombol ditekan) ============ -->
+<div id="v3d" role="dialog" aria-modal="true" aria-labelledby="v3d-title">
+  <canvas id="v3d-canvas" aria-label="Interactive 3D illustration of the venue"></canvas>
+  <div class="v-top">
+    <div><p class="cap dim">Explore the venue</p><h3 id="v3d-title">ART Sociates</h3></div>
+    <button class="ico" type="button" id="v3d-close" aria-label="Close">✕</button>
+  </div>
+  <div class="v-load" id="v3d-load">
+    <p class="cap">Loading venue</p>
+    <div class="ld-bar"><i id="v3d-bar"></i></div>
+    <span class="ld-pct" id="v3d-pct" style="margin-top:0">0%</span>
+  </div>
+  <div class="v-bot">
+    <p class="small" id="v3d-hint">Drag to rotate · pinch or scroll to zoom<br>Illustration only, not to scale.</p>
+    <a class="btn" id="v3d-maps" target="_blank" rel="noopener">Google Maps</a>
+  </div>
+</div>
+
 <script>
 /* =====================================================================
    SETTINGS — edit here only
@@ -475,6 +512,9 @@ const CONFIG = {
 
   // Background music (optional), e.g. "assets/song.mp3"
   musik: "",
+
+  // Model 3D venue (tombol "Explore the venue"). Kosongkan "" untuk menyembunyikan.
+  venue3d: "assets/venue.glb",
 
   // Gallery. "wide": true = landscape photo (spans 2 columns)
   galeri: [
@@ -527,7 +567,9 @@ CONFIG.acara.forEach((a, i) => {
   const act = el("div", "actions");
   const m = el("a", "btn", "Google Maps"); m.href = a.maps; m.target = "_blank"; m.rel = "noopener";
   const cal = el("a", "btn", "Add to Calendar"); cal.target = "_blank"; cal.rel = "noopener"; cal.href = calLink(a);
-  act.append(m, cal); box.append(f, act); $("#events").append(box);
+  act.append(m, cal);
+  if (i === 0 && CONFIG.venue3d) { const v = el("button", "btn solid", "Explore the venue · 3D"); v.type = "button"; v.onclick = () => openVenue(a); act.append(v); }
+  box.append(f, act); $("#events").append(box);
 });
 $("#cal-main").href = calLink(CONFIG.acara[0]);
 
@@ -561,7 +603,7 @@ function hide() { lb.classList.remove("open"); document.body.style.overflow = ""
 $(".x", lb).onclick = hide; $(".pv", lb).onclick = () => show(cur - 1); $(".nx", lb).onclick = () => show(cur + 1);
 lb.onclick = e => { if (e.target === lb) hide(); };
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape") { hide(); toggleMenu(false); }
+  if (e.key === "Escape") { hide(); toggleMenu(false); if (V.open) closeVenue(); }
   if (!lb.classList.contains("open")) return;
   if (e.key === "ArrowLeft") show(cur - 1); if (e.key === "ArrowRight") show(cur + 1);
 });
@@ -608,6 +650,21 @@ $("#rsvp").addEventListener("submit", async e => {
   finally { btn.disabled = false; btn.textContent = "Send"; }
 });
 
+/* parallax: foto venue bergerak lebih lambat dari teks selama bagian Akad Nikah terlihat */
+(function () {
+  const layer = $("#bg-venue"), sec = $("#acara");
+  if (!layer || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  let ticking = false;
+  const update = () => {
+    ticking = false;
+    const r = sec.getBoundingClientRect(), vh = innerHeight;
+    const p = Math.min(1, Math.max(0, (vh - r.top) / (vh + r.height)));   // 0 = baru masuk, 1 = sudah lewat
+    layer.style.transform = "translate3d(0," + ((0.5 - p) * 12).toFixed(2) + "%,0) scale(1.18)";
+  };
+  addEventListener("scroll", () => { if (!ticking) { ticking = true; requestAnimationFrame(update); } }, { passive: true });
+  addEventListener("resize", update); update();
+})();
+
 /* switch background for the section crossing the middle of the screen */
 const layers = {}; document.querySelectorAll("#stage .bg").forEach(b => layers[b.dataset.key] = b);
 let activeKey = "mural";
@@ -617,6 +674,91 @@ const bgIO = new IntersectionObserver(es => es.forEach(x => {
   layers[activeKey].classList.remove("on"); layers[k].classList.add("on"); activeKey = k;
 }), { rootMargin: "-50% 0px -50% 0px" });
 document.querySelectorAll("main section[data-bg]").forEach(s => bgIO.observe(s));
+
+/* ---------- VENUE 3D: three.js + model hanya diunduh saat tombol ditekan ---------- */
+const V = { open: false, ready: false, loading: false, start: null, stop: null };
+function openVenue(a) {
+  $("#v3d").classList.add("open"); document.body.style.overflow = "hidden";
+  $("#v3d-maps").href = a.maps; $("#v3d-close").focus(); V.open = true;
+  if (V.ready) { V.start(); return; }
+  if (!V.loading) {
+    V.loading = true;
+    initVenue().catch(err => {
+      console.error(err); V.loading = false;
+      $("#v3d-load .cap").textContent = "The 3D venue couldn't load on this device. Please use Google Maps below.";
+      $("#v3d-pct").textContent = "";
+    });
+  }
+}
+function closeVenue() { $("#v3d").classList.remove("open"); document.body.style.overflow = ""; V.open = false; if (V.stop) V.stop(); }
+$("#v3d-close").onclick = closeVenue;
+
+async function initVenue() {
+  const probe = document.createElement("canvas");
+  if (!(probe.getContext("webgl2") || probe.getContext("webgl"))) throw new Error("WebGL not available");
+  const setP = p => { $("#v3d-bar").style.transform = "scaleX(" + p.toFixed(3) + ")"; $("#v3d-pct").textContent = Math.round(p * 100) + "%"; };
+  setP(.02);
+  const [THREE, { GLTFLoader }, { OrbitControls }] = await Promise.all([
+    import("three"), import("three/addons/loaders/GLTFLoader.js"), import("three/addons/controls/OrbitControls.js")
+  ]);
+  setP(.08);
+
+  // unduh model dengan progres
+  const res = await fetch(CONFIG.venue3d);
+  if (!res.ok) throw new Error("Model " + res.status);
+  const total = +res.headers.get("content-length") || 2600000;
+  let buf;
+  if (res.body && res.body.getReader) {
+    const rd = res.body.getReader(), chunks = []; let got = 0;
+    for (;;) { const { done, value } = await rd.read(); if (done) break; chunks.push(value); got += value.length; setP(.08 + .87 * Math.min(1, got / total)); }
+    const u = new Uint8Array(got); let o = 0; for (const c of chunks) { u.set(c, o); o += c.length; } buf = u.buffer;
+  } else buf = await res.arrayBuffer();
+  const gltf = await new GLTFLoader().parseAsync(buf, "");
+  setP(1);
+
+  const canvas = $("#v3d-canvas"), small = Math.min(innerWidth, innerHeight) < 700;
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, small ? 1.5 : 1.75));
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.shadowMap.enabled = !small;               // bayangan hanya di layar besar, supaya HP tetap lancar
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  const scene = new THREE.Scene();
+  const SKY = new THREE.Color(0xd3dde6);              // langit pagi yang pucat
+  scene.background = SKY; scene.fog = new THREE.FogExp2(SKY, 0.0015);
+  scene.add(new THREE.HemisphereLight(0xe3ecf7, 0x4a4032, 1.3));
+  const sun = new THREE.DirectionalLight(0xfff0d8, 2.6);  // matahari pagi: rendah, hangat lembut
+  const focus = new THREE.Vector3(-14, 0, -4);
+  sun.position.set(focus.x + 120, 62, focus.z + 70); sun.target.position.copy(focus);
+  sun.castShadow = !small; sun.shadow.mapSize.set(2048, 2048);
+  Object.assign(sun.shadow.camera, { left: -62, right: 62, top: 62, bottom: -62, near: 10, far: 360 });
+  sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.04;
+  scene.add(sun, sun.target);
+
+  const far = new Set(["hillside", "valley", "hill_far", "city", "city_roof", "mountain"]);
+  gltf.scene.traverse(o => { if (o.isMesh) { const n = o.material && o.material.name; o.castShadow = !far.has(n); o.receiveShadow = true; } });
+  scene.add(gltf.scene);
+
+  const camera = new THREE.PerspectiveCamera(40, 1, 0.5, 4000);
+  camera.position.set(82, 50, 92);
+  if (innerWidth / innerHeight < .8) camera.position.lerp(new THREE.Vector3(-14, 3, -6), .3);  // HP: mulai sedikit lebih dekat
+  const controls = new OrbitControls(camera, canvas);
+  controls.target.set(-14, 3, -6);
+  controls.enableDamping = true; controls.dampingFactor = .08; controls.enablePan = false;
+  controls.minDistance = 28; controls.maxDistance = 230;
+  controls.minPolarAngle = Math.PI * .08; controls.maxPolarAngle = Math.PI * .46;  // tidak bisa masuk ke bawah tanah
+  controls.autoRotate = !matchMedia("(prefers-reduced-motion: reduce)").matches; controls.autoRotateSpeed = .6;
+  controls.addEventListener("start", () => { controls.autoRotate = false; });
+
+  const resize = () => { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.fov = w / h < .8 ? 55 : 40; camera.updateProjectionMatrix(); };
+  addEventListener("resize", () => { if (V.open) resize(); });
+  let raf = 0;
+  const loop = () => { raf = requestAnimationFrame(loop); controls.update(); renderer.render(scene, camera); };
+  V.start = () => { resize(); cancelAnimationFrame(raf); loop(); };
+  V.stop = () => cancelAnimationFrame(raf);
+  V.ready = true; $("#v3d-load").hidden = true;
+  if (V.open) V.start();
+}
 
 /* loader: tunggu foto sampul selesai diunduh (min 2,4 dtk, maks 8 dtk) */
 (function () {
