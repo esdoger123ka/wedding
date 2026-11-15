@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0E0D0C">
+<title>Photobooth Gallery · Bagaskara &amp; Farisa</title>
+<meta name="description" content="Photobooth pictures from the wedding of Bagaskara & Farisa.">
+<meta property="og:title" content="Photobooth Gallery · Bagaskara & Farisa">
+<meta property="og:description" content="Photobooth pictures from our friends and family.">
+<meta property="og:image" content="https://esdoger123ka.github.io/wedding/assets/img/hero-wide.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+
+<script>
+/* ============================================================
+   PENGATURAN — cukup ubah bagian ini
+   ============================================================ */
+const CONFIG = {
+  mempelai: "Bagaskara & Farisa",
+  tanggal:  "26 · 12 · 2026",
+  // URL Apps Script Photobooth (berakhiran /exec), SAMA dengan uploadUrl di photobooth.html
+  apiUrl: "",
+  photobooth: "photobooth.html",
+  undangan: "./",
+  refreshDetik: 60,      // seberapa sering galeri mengecek foto baru
+  slideDetik: 6          // lama tiap foto di mode slideshow
+};
+</script>
+
+<style>
+:root{
+  --bg:#0E0D0C; --fg:#F6F2EC; --dim:rgba(246,242,236,.68); --faint:rgba(246,242,236,.28);
+  --line:rgba(246,242,236,.32); --panel:#171513;
+  --sans:"Inter Tight", system-ui, sans-serif;
+  --serif:"Instrument Serif", Georgia, serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-weight:300;font-size:16px;line-height:1.55;min-height:100vh;-webkit-tap-highlight-color:transparent}
+body.locked{overflow:hidden}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
+a{color:inherit}
+img{display:block;max-width:100%}
+:focus-visible{outline:1px solid var(--fg);outline-offset:4px}
+[hidden]{display:none!important}
+.cap{font-size:11px;letter-spacing:.22em;text-transform:uppercase;font-weight:400}
+.dim{color:var(--dim)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:44px;padding:11px 20px;border:1px solid var(--fg);font-size:11px;letter-spacing:.22em;text-transform:uppercase;font-weight:400;text-decoration:none;transition:background .25s,color .25s}
+.btn:hover,.btn:focus-visible{background:var(--fg);color:var(--bg)}
+.btn.solid{background:var(--fg);color:var(--bg)}
+.btn.solid:hover{background:transparent;color:var(--fg)}
+
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:calc(12px + env(safe-area-inset-top)) 18px 0;max-width:1240px;margin:0 auto}
+.top a{text-decoration:none;color:var(--dim)} .top a:hover{color:var(--fg)}
+
+header{text-align:center;padding:48px 18px 30px;max-width:1240px;margin:0 auto}
+header h1{font-family:var(--serif);font-style:italic;font-weight:400;font-size:clamp(52px,13vw,104px);line-height:.95;margin:12px 0 14px}
+header .lead{color:var(--dim);max-width:420px;margin:0 auto 24px;font-size:15px}
+.actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+#count{margin-top:22px;color:var(--dim);font-variant-numeric:tabular-nums;min-height:18px}
+
+main{max-width:1240px;margin:0 auto;padding:6px 14px calc(56px + env(safe-area-inset-bottom))}
+#grid{columns:2;column-gap:10px}
+@media (min-width:720px){#grid{columns:3;column-gap:14px}}
+@media (min-width:1080px){#grid{columns:4}}
+.card{break-inside:avoid;margin-bottom:14px;display:block;width:100%;text-align:left;position:relative;overflow:hidden;opacity:0;transform:translateY(12px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1)}
+@media (min-width:720px){.card{margin-bottom:18px}}
+.card.in{opacity:1;transform:none}
+.card img{width:100%;height:auto;aspect-ratio:var(--ar,9/16);object-fit:cover;background:var(--panel);transition:transform .6s ease}
+.card:hover img{transform:scale(1.02)}
+.card .who{display:block;padding:7px 1px 0;font-size:12.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card:hover .who{color:var(--fg)}
+.card.new::after{content:"New";position:absolute;top:8px;left:8px;font-size:10px;letter-spacing:.2em;text-transform:uppercase;padding:4px 7px;background:var(--fg);color:var(--bg)}
+
+.state{text-align:center;padding:60px 18px;color:var(--dim);max-width:420px;margin:0 auto}
+.state p+p{margin-top:14px}
+.state .big{font-family:var(--serif);font-style:italic;font-size:34px;color:var(--fg);line-height:1.1}
+.skel{break-inside:avoid;margin-bottom:10px;background:var(--panel);aspect-ratio:9/16;animation:pulse 1.6s ease-in-out infinite}
+.skel:nth-child(3n+2){aspect-ratio:4/5}
+@keyframes pulse{50%{opacity:.55}}
+
+/* ---------- LIGHTBOX ---------- */
+#lb{position:fixed;inset:0;z-index:50;background:rgba(10,9,8,.97);display:flex;flex-direction:column}
+#lb .bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:calc(10px + env(safe-area-inset-top)) 14px 6px}
+#lb .who{font-family:var(--serif);font-style:italic;font-size:22px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#lb .x{width:44px;height:44px;border:1px solid var(--line);border-radius:50%;display:grid;place-items:center;flex:none}
+#lb .x:hover{border-color:var(--fg)}
+#lb .stage{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center;padding:6px 14px;touch-action:pan-y}
+#lb .stage img{max-width:100%;max-height:100%;object-fit:contain;box-shadow:0 18px 60px rgba(0,0,0,.55);transition:opacity .3s}
+#lb .stage img.loading{opacity:.25}
+#lb .nav{position:absolute;top:50%;transform:translateY(-50%);width:48px;height:48px;border:1px solid var(--line);border-radius:50%;display:grid;place-items:center;background:rgba(14,13,12,.5)}
+#lb .nav:hover{border-color:var(--fg)}
+#lb .prev{left:14px} #lb .next{right:14px}
+@media (max-width:719px){#lb .nav{display:none}}
+#lb .foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px calc(14px + env(safe-area-inset-bottom));color:var(--dim)}
+#lb .foot a{font-size:13px;text-underline-offset:4px;text-decoration-color:var(--faint)}
+#lb .foot a:hover{color:var(--fg)}
+#lb svg{width:18px;height:18px}
+
+/* ---------- SLIDESHOW ---------- */
+#ss{position:fixed;inset:0;z-index:60;background:#000;cursor:none}
+#ss .slide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:28px 28px calc(118px + env(safe-area-inset-bottom));opacity:0;transition:opacity 1.2s ease}
+#ss .slide.on{opacity:1}
+#ss .slide .blur{position:absolute;inset:-40px;background:center/cover no-repeat;filter:blur(40px) brightness(.35);transform:scale(1.1)}
+#ss .slide img{position:relative;max-width:100%;max-height:100%;object-fit:contain;box-shadow:0 30px 90px rgba(0,0,0,.7)}
+#ss .cred{position:absolute;left:0;right:0;bottom:calc(26px + env(safe-area-inset-bottom));text-align:center;pointer-events:none;text-shadow:0 2px 20px rgba(0,0,0,.7)}
+#ss .cred b{display:block;font-family:var(--serif);font-style:italic;font-weight:400;font-size:clamp(22px,3.4vw,40px);line-height:1.15}
+#ss .cred span{display:block;margin-top:4px}
+#ss .exit{position:absolute;top:calc(14px + env(safe-area-inset-top));right:14px;opacity:0;transition:opacity .3s;cursor:pointer}
+#ss.show-ui{cursor:default} #ss.show-ui .exit{opacity:1}
+#ss .empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}
+
+@media (prefers-reduced-motion:reduce){
+  .card,.card img,#ss .slide{transition-duration:.01s}
+  .skel{animation:none}
+}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <a class="cap" id="to-inv" href="./">← Invitation</a>
+  <a class="cap" id="to-booth" href="photobooth.html">Photobooth →</a>
+</div>
+
+<header>
+  <p class="cap dim" id="eyebrow"></p>
+  <h1>The Photobooth</h1>
+  <p class="lead">Every picture our friends and family took with us. Tap one to see it up close.</p>
+  <div class="actions">
+    <a class="btn solid" id="take" href="photobooth.html">Take a photo</a>
+    <button class="btn" id="play" type="button">Slideshow</button>
+  </div>
+  <p class="cap" id="count" aria-live="polite"></p>
+</header>
+
+<main>
+  <div id="grid" aria-label="Photobooth pictures"></div>
+  <div class="state" id="state" role="status" hidden></div>
+</main>
+
+<!-- lightbox -->
+<div id="lb" role="dialog" aria-modal="true" aria-label="Photo viewer" hidden>
+  <div class="bar">
+    <span class="who" id="lb-who"></span>
+    <button class="x" id="lb-x" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="stage" id="lb-stage">
+    <button class="nav prev" id="lb-prev" aria-label="Previous photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <img id="lb-img" alt="">
+    <button class="nav next" id="lb-next" aria-label="Next photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+  </div>
+  <div class="foot">
+    <span class="cap" id="lb-pos"></span>
+    <a id="lb-open" href="#" target="_blank" rel="noopener">Open full size</a>
+  </div>
+</div>
+
+<!-- slideshow -->
+<div id="ss" hidden>
+  <div class="slide"><div class="blur"></div><img alt=""></div>
+  <div class="slide"><div class="blur"></div><img alt=""></div>
+  <div class="cred"><b id="ss-who"></b><span class="cap dim" id="ss-sub"></span></div>
+  <button class="btn exit" id="ss-x">Exit slideshow</button>
+  <div class="empty" id="ss-empty" hidden><p class="dim">Waiting for the first photo…</p></div>
+</div>
+
+<script>
+(() => {
+"use strict";
+const $ = s => document.querySelector(s);
+const C = CONFIG;
+const AR = { portrait: "4/5", strip: "9/16", vintage: "9/16", story: "9/16" };
+let items = [], seen = new Set(), firstLoad = true, timer = 0;
+
+const thumb = (id, w) => `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w${w}`;
+const viewUrl = id => `https://drive.google.com/file/d/${encodeURIComponent(id)}/view`;
+const who = it => (it.nama && it.nama.trim()) || "A guest";
+const when = t => { try { return new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } };
+
+$("#eyebrow").textContent = `${C.mempelai}  ·  ${C.tanggal}`;
+["#to-booth", "#take"].forEach(s => $(s).href = C.photobooth);
+$("#to-inv").href = C.undangan || "./";
+
+function state(html) { const s = $("#state"); s.hidden = !html; s.innerHTML = html || ""; }
+function skeleton() { $("#grid").innerHTML = Array.from({ length: 8 }, () => '<div class="skel"></div>').join(""); }
+function setCount() { $("#count").textContent = items.length ? `${items.length} photo${items.length > 1 ? "s" : ""}` : ""; }
+
+/* gambar dari Drive kadang gagal dimuat sesaat: coba lagi sekali, lalu sembunyikan */
+function loadImg(img, src, onFail) {
+  let tries = 0;
+  img.onerror = () => {
+    if (++tries <= 2) setTimeout(() => { img.src = src + "&r=" + tries; }, 1500 * tries);
+    else if (onFail) onFail();
+  };
+  img.src = src;
+}
+
+function card(it, isNew) {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "card" + (isNew ? " new" : "");
+  b.style.setProperty("--ar", AR[it.frame] || "9/16");
+  b.setAttribute("aria-label", `Photo by ${who(it)}`);
+  const img = document.createElement("img");
+  img.alt = `Photobooth picture by ${who(it)}`; img.loading = "lazy"; img.decoding = "async";
+  img.onload = () => { img.style.aspectRatio = "auto"; b.classList.add("in"); };
+  loadImg(img, thumb(it.id, 640), () => b.remove());
+  const cap = document.createElement("span"); cap.className = "who"; cap.textContent = who(it);
+  b.append(img, cap);
+  b.addEventListener("click", () => openLb(items.indexOf(it)));
+  return b;
+}
+
+async function fetchList() {
+  const r = await fetch(C.apiUrl + (C.apiUrl.includes("?") ? "&" : "?") + "t=" + Date.now(), { cache: "no-store" });
+  const j = await r.json();
+  if (!j || !j.ok || !Array.isArray(j.data)) throw new Error("bad response");
+  return j.data.filter(x => x && typeof x.id === "string" && /^[\w-]{10,}$/.test(x.id));
+}
+
+async function refresh() {
+  clearTimeout(timer);
+  try {
+    const list = await fetchList();
+    const ids = new Set(list.map(x => x.id));
+    const grid = $("#grid");
+    if (firstLoad) grid.innerHTML = "";
+    // foto yang disembunyikan dari spreadsheet ikut hilang dari galeri
+    items = items.filter(x => ids.has(x.id));
+    [...grid.children].forEach(n => { if (n.dataset.id && !ids.has(n.dataset.id)) n.remove(); });
+    const fresh = list.filter(x => !seen.has(x.id));
+    // urutan terbaru di atas
+    fresh.slice().reverse().forEach(it => {
+      seen.add(it.id);
+      const n = card(it, !firstLoad); n.dataset.id = it.id;
+      grid.prepend(n);
+    });
+    items = list.filter(x => seen.has(x.id));
+    firstLoad = false;
+    setCount();
+    state(items.length ? "" : `<p class="big">No photos yet.</p><p>Be the first: <a href="${C.photobooth}">take a photo</a>.</p>`);
+    SS.update();
+  } catch (e) {
+    if (firstLoad) { $("#grid").innerHTML = ""; state('<p class="big">The gallery couldn\'t load.</p><p>Check your connection. We\'ll try again in a moment.</p>'); }
+  }
+  if (!document.hidden) timer = setTimeout(refresh, Math.max(15, C.refreshDetik) * 1000);
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden && C.apiUrl) refresh(); });
+
+/* ---------- lightbox ---------- */
+let idx = 0, lastFocus = null;
+function showLb() {
+  const it = items[idx]; if (!it) return closeLb();
+  const img = $("#lb-img");
+  img.classList.add("loading"); img.alt = `Photobooth picture by ${who(it)}`;
+  img.onload = () => img.classList.remove("loading");
+  loadImg(img, thumb(it.id, 1600));
+  $("#lb-who").textContent = who(it);
+  $("#lb-pos").textContent = `${idx + 1} / ${items.length}`;
+  $("#lb-open").href = viewUrl(it.id);
+  [items[idx + 1], items[idx - 1]].forEach(n => { if (n) new Image().src = thumb(n.id, 1600); });
+}
+function openLb(i) { if (i < 0) return; idx = i; lastFocus = document.activeElement; $("#lb").hidden = false; document.body.classList.add("locked"); showLb(); $("#lb-x").focus(); }
+function closeLb() { $("#lb").hidden = true; document.body.classList.remove("locked"); if (lastFocus) lastFocus.focus(); }
+const step = d => { if (!items.length) return; idx = (idx + d + items.length) % items.length; showLb(); };
+$("#lb-x").addEventListener("click", closeLb);
+$("#lb-prev").addEventListener("click", () => step(-1));
+$("#lb-next").addEventListener("click", () => step(1));
+$("#lb-stage").addEventListener("click", e => { if (e.target.id === "lb-stage") closeLb(); });
+let tx = null;
+$("#lb-stage").addEventListener("touchstart", e => { tx = e.touches[0].clientX; }, { passive: true });
+$("#lb-stage").addEventListener("touchend", e => { if (tx === null) return; const dx = e.changedTouches[0].clientX - tx; if (Math.abs(dx) > 45) step(dx < 0 ? 1 : -1); tx = null; });
+document.addEventListener("keydown", e => {
+  if (!$("#lb").hidden) { if (e.key === "Escape") closeLb(); if (e.key === "ArrowRight") step(1); if (e.key === "ArrowLeft") step(-1); }
+  else if (!$("#ss").hidden && e.key === "Escape") SS.stop();
+});
+
+/* ---------- slideshow (bisa dipakai untuk layar di venue) ---------- */
+const SS = (() => {
+  const root = $("#ss"), slides = [...root.querySelectorAll(".slide")];
+  let on = false, k = 0, cur = -1, t = 0, uiT = 0, queue = [], shown = new Set();
+  function next() {
+    clearTimeout(t);
+    if (!on) return;
+    $("#ss-empty").hidden = items.length > 0;
+    if (!items.length) { slides.forEach(s => s.classList.remove("on")); $("#ss-who").textContent = ""; $("#ss-sub").textContent = ""; t = setTimeout(next, 5000); return; }
+    // foto baru didahulukan, sisanya berputar dari yang terbaru
+    let it = queue.shift();
+    if (!it) { cur = (cur + 1) % items.length; it = items[cur]; }
+    shown.add(it.id);
+    const s = slides[k], src = thumb(it.id, 1920), img = s.querySelector("img");
+    const go = () => {
+      s.querySelector(".blur").style.backgroundImage = `url("${src}")`;
+      slides.forEach(x => x.classList.toggle("on", x === s));
+      $("#ss-who").textContent = who(it);
+      $("#ss-sub").textContent = when(it.t);
+      k = 1 - k;
+      t = setTimeout(next, Math.max(3, C.slideDetik) * 1000);
+    };
+    img.onload = go; loadImg(img, src, () => { t = setTimeout(next, 500); });
+  }
+  function ui() { root.classList.add("show-ui"); clearTimeout(uiT); uiT = setTimeout(() => root.classList.remove("show-ui"), 2500); }
+  root.addEventListener("mousemove", ui); root.addEventListener("touchstart", ui, { passive: true });
+  $("#ss-x").addEventListener("click", e => { e.stopPropagation(); stop(); });
+  let wake = null;
+  async function start() {
+    on = true; root.hidden = false; document.body.classList.add("locked"); cur = -1; queue = []; shown = new Set(items.map(x => x.id));
+    try { if (root.requestFullscreen) await root.requestFullscreen(); } catch (e) {}
+    try { if (navigator.wakeLock) wake = await navigator.wakeLock.request("screen"); } catch (e) {}
+    ui(); next();
+  }
+  function stop() {
+    on = false; clearTimeout(t); root.hidden = true; document.body.classList.remove("locked");
+    try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {}
+    try { if (wake) wake.release(); } catch (e) {}
+  }
+  document.addEventListener("fullscreenchange", () => { if (on && !document.fullscreenElement && !root.hidden && root.dataset.fs === "1") stop(); root.dataset.fs = document.fullscreenElement ? "1" : "0"; });
+  function update() {
+    if (!on) return;
+    items.forEach(it => { if (!shown.has(it.id) && !queue.includes(it)) queue.push(it); });
+    if ($("#ss-empty").hidden === false && items.length) next();
+  }
+  return { start, stop, update };
+})();
+$("#play").addEventListener("click", () => SS.start());
+
+/* ---------- mulai ---------- */
+if (!C.apiUrl) {
+  state('<p class="big">The gallery isn\'t connected yet.</p><p>Photos will appear here once the photobooth is linked to the album.</p>');
+  $("#play").hidden = true;
+} else {
+  skeleton();
+  refresh();
+}
+// layar venue: buka gallery.html?slideshow=1 — slideshow langsung jalan; klik sekali untuk layar penuh
+if (new URLSearchParams(location.search).get("slideshow") === "1" && C.apiUrl) {
+  SS.start();
+  $("#ss").addEventListener("click", () => { try { if (!document.fullscreenElement && $("#ss").requestFullscreen) $("#ss").requestFullscreen(); } catch (e) {} });
+}
+})();
+</script>
+</body>
+</html>

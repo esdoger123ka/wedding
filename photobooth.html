@@ -23,8 +23,9 @@ const CONFIG = {
   tanggal:  "26 · 12 · 2026",              // tulisan tanggal di bingkai
   tempat:   "Lawangwangi, Bandung",        // tulisan tempat di bingkai
   // URL Apps Script Photobooth (berakhiran /exec). Kosongkan "" = foto tidak dikirim ke Drive.
-  uploadUrl: "https://script.google.com/macros/s/AKfycbwSk1fYIsmaCPmaAZIUwbaN_FxpNGCK2OP4NzIcneG4vFLeyNiBsVo0a19HWlhcOoCr0g/exec",
+  uploadUrl: "",
   undangan: "./",                          // link tombol "Invitation"
+  galeri:   "gallery.html",                // link ke galeri foto tamu
   latar: "assets/img/cover.jpg"            // foto latar halaman pembuka
 };
 </script>
@@ -76,6 +77,7 @@ body[data-view="result"] #v-result{display:flex}
 #start-msg{max-width:340px;margin-top:14px;font-size:13.5px;color:var(--fg);border:1px solid var(--line);padding:12px 14px;text-align:left}
 #start-msg button{display:block;margin-top:8px}
 #v-start .back{margin-top:24px}
+.gal-link{color:var(--dim)}
 
 /* ---------- BOOTH ---------- */
 #v-booth,#v-result{flex-direction:column}
@@ -151,7 +153,8 @@ body[data-view="result"] #v-result{display:flex}
   <button class="btn solid" id="start-btn">Open camera</button>
   <button class="link" id="start-alt">Use my phone's camera app instead</button>
   <div id="start-msg" role="status" hidden></div>
-  <a class="link back" id="back-link" href="./">← Back to the invitation</a>
+  <a class="link gal-link" href="gallery.html" style="margin-top:22px">See everyone's photos →</a>
+  <a class="link back" id="back-link" href="./" style="margin-top:4px">← Back to the invitation</a>
 </section>
 
 <!-- ================= BOOTH ================= -->
@@ -194,14 +197,14 @@ body[data-view="result"] #v-result{display:flex}
   </div>
   <div class="stagebox"><img id="shot" alt="Your photobooth picture"></div>
   <div class="result-ui">
-    <label class="send" id="send-row"><input type="checkbox" id="send" checked><span>Send a copy to <span id="send-names"></span>'s album when I save or share</span></label>
+    <label class="send" id="send-row"><input type="checkbox" id="send" checked><span>Add this photo to the wedding gallery on this website when I save or share</span></label>
     <p id="status" role="status"></p>
     <div class="acts">
       <button class="btn solid" id="save">Save</button>
       <button class="btn" id="share" hidden>Share</button>
       <button class="btn" id="again">Retake</button>
     </div>
-    <p class="dim" style="font-size:12px;text-align:center">Tip: press and hold the photo to save it to your gallery.</p>
+    <p class="dim" style="font-size:12px;text-align:center">Tip: press and hold the photo to save it to your phone. <a class="gal-link" href="gallery.html">See everyone's photos →</a></p>
   </div>
 </section>
 
@@ -646,7 +649,7 @@ async function enqueue(it) {
   const all = await Q.all();
   if (all.length >= 30) await Q.del(all.sort((a, b) => a.ts - b.ts)[0].id);
   await Q.put(it);
-  el.status.textContent = "Sending to the album…";
+  el.status.textContent = "Adding to the gallery…";
   pump();
 }
 async function post(it) { // "ok" | "drop" | "retry"
@@ -671,8 +674,8 @@ async function pump() {
       await badge();
       const r = await post(it);
       const mine = it.id === S.id;
-      if (r === "ok") { await Q.del(it.id); if (mine) el.status.textContent = "Sent to the album. Thank you!"; }
-      else if (r === "drop") { await Q.del(it.id); if (mine) el.status.textContent = "The album couldn't take this photo, but it's saved for you."; }
+      if (r === "ok") { await Q.del(it.id); if (mine) el.status.textContent = "Added to the gallery. Thank you!"; }
+      else if (r === "drop") { await Q.del(it.id); if (mine) el.status.textContent = "The gallery couldn't take this photo, but you can still save it."; }
       else {
         if (mine) el.status.textContent = "No signal right now. We'll send it automatically; keep this page open.";
         retryT = setTimeout(pump, 20000);
@@ -736,7 +739,7 @@ document.addEventListener("visibilitychange", () => {
 
 // isi halaman
 $("#start-eyebrow").textContent = `${C.mempelai}  ·  ${C.tanggal}`;
-$("#send-names").textContent = C.mempelai;
+document.querySelectorAll(".gal-link").forEach(a => { a.href = C.galeri || "gallery.html"; a.hidden = !C.uploadUrl; });
 if (C.latar) $("#start-bg").style.backgroundImage = `url("${C.latar}")`;
 ["#back-link", "#back-link2", "#back-link3"].forEach(s => $(s).href = C.undangan || "./");
 if (!C.uploadUrl) $("#send-row").hidden = true;
