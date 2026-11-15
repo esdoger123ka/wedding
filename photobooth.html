@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0E0D0C">
+<title>Photobooth · Bagaskara &amp; Farisa</title>
+<meta name="description" content="Take a photo with the wedding frame of Bagaskara & Farisa.">
+<meta property="og:title" content="Photobooth · Bagaskara & Farisa">
+<meta property="og:description" content="Take a photo with our wedding frame.">
+<meta property="og:image" content="https://esdoger123ka.github.io/wedding/assets/img/hero-wide.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+
+<script>
+/* ============================================================
+   PENGATURAN — cukup ubah bagian ini
+   ============================================================ */
+const CONFIG = {
+  mempelai: "Bagaskara & Farisa",          // tulisan nama di bingkai
+  tanggal:  "26 · 12 · 2026",              // tulisan tanggal di bingkai
+  tempat:   "Lawangwangi, Bandung",        // tulisan tempat di bingkai
+  // URL Apps Script Photobooth (berakhiran /exec). Kosongkan "" = foto tidak dikirim ke Drive.
+  uploadUrl: "",
+  undangan: "./",                          // link tombol "Invitation"
+  latar: "assets/img/cover.jpg"            // foto latar halaman pembuka
+};
+</script>
+
+<style>
+:root{
+  --bg:#0E0D0C; --fg:#F6F2EC; --dim:rgba(246,242,236,.68); --faint:rgba(246,242,236,.28);
+  --line:rgba(246,242,236,.32); --panel:#171513;
+  --sans:"Inter Tight", system-ui, sans-serif;
+  --serif:"Instrument Serif", Georgia, serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-weight:300;font-size:16px;line-height:1.55;overflow:hidden;-webkit-tap-highlight-color:transparent}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0}
+a{color:inherit}
+:focus-visible{outline:1px solid var(--fg);outline-offset:4px}
+[hidden]{display:none!important}
+.cap{font-size:11px;letter-spacing:.22em;text-transform:uppercase;font-weight:400}
+.dim{color:var(--dim)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:46px;padding:12px 22px;border:1px solid var(--fg);font-size:11px;letter-spacing:.22em;text-transform:uppercase;font-weight:400;text-decoration:none;transition:background .25s,color .25s}
+.btn:hover,.btn:focus-visible{background:var(--fg);color:var(--bg)}
+.btn.solid{background:var(--fg);color:var(--bg)}
+.btn.solid:hover{background:transparent;color:var(--fg)}
+.btn[disabled]{opacity:.4;pointer-events:none}
+.link{font-size:13px;color:var(--dim);text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--faint);padding:8px 4px}
+.link:hover{color:var(--fg)}
+
+.view{position:fixed;inset:0;display:none;height:100dvh}
+body[data-view="start"] #v-start,
+body[data-view="booth"] #v-booth,
+body[data-view="result"] #v-result{display:flex}
+
+/* ---------- START ---------- */
+#v-start{flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px 22px calc(28px + env(safe-area-inset-bottom));overflow-y:auto}
+#v-start .bgc{position:absolute;inset:0;z-index:-1;background:var(--bg) center/cover no-repeat}
+#v-start .bgc::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(14,13,12,.8),rgba(14,13,12,.72) 45%,rgba(14,13,12,.96))}
+#v-start h1{font-family:var(--serif);font-style:italic;font-weight:400;font-size:clamp(58px,17vw,104px);line-height:.95;margin:14px 0 16px}
+#v-start .lead{max-width:340px;color:var(--dim);font-size:15px;margin-bottom:26px}
+.field{width:min(100%,320px);margin-bottom:18px;text-align:left}
+.field label{display:block;margin-bottom:6px;color:var(--dim)}
+.field input{width:100%;background:transparent;border:0;border-bottom:1px solid var(--line);padding:9px 0;font-size:17px;border-radius:0}
+.field input:focus{outline:0;border-bottom-color:var(--fg)}
+.field input::placeholder{color:var(--faint)}
+#v-start .btn{width:min(100%,320px)}
+#start-alt{margin-top:10px}
+#start-msg{max-width:340px;margin-top:14px;font-size:13.5px;color:var(--fg);border:1px solid var(--line);padding:12px 14px;text-align:left}
+#start-msg button{display:block;margin-top:8px}
+#v-start .back{margin-top:24px}
+
+/* ---------- BOOTH ---------- */
+#v-booth,#v-result{flex-direction:column}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:calc(10px + env(safe-area-inset-top)) 16px 8px;min-height:48px}
+.top a{text-decoration:none;color:var(--dim)}
+.top a:hover{color:var(--fg)}
+#pending{color:var(--dim);font-variant-numeric:tabular-nums;min-width:74px;text-align:right}
+.stagebox{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:4px 16px 8px;position:relative}
+#frame{position:relative;background:var(--bg);box-shadow:0 18px 60px rgba(0,0,0,.55);overflow:hidden}
+#frame video,#frame .ph{position:absolute;object-fit:cover;background:#000}
+#frame video.mirror{transform:scaleX(-1)}
+#frame .ph{display:flex;align-items:center;justify-content:center;text-align:center;padding:12px;color:var(--dim);background:var(--panel);font-size:13px}
+#frame canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#count{position:absolute;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-style:italic;font-size:clamp(84px,30vw,168px);line-height:1;text-shadow:0 4px 40px rgba(0,0,0,.6);pointer-events:none}
+#count.tick{animation:tick .9s ease-out}
+@keyframes tick{from{opacity:0;transform:scale(1.35)}25%{opacity:1}to{opacity:.9;transform:scale(1)}}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+#flash.go{animation:flash .5s ease-out}
+@keyframes flash{from{opacity:.95}to{opacity:0}}
+
+.controls{padding:6px 16px calc(14px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px;align-items:center}
+.controls.busy .seg,.controls.busy .side{opacity:.3;pointer-events:none}
+.seg{display:flex;gap:4px;width:min(100%,380px)}
+.seg button{flex:1;min-width:0;min-height:38px;padding:8px 2px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:400;color:var(--dim);border-bottom:1px solid var(--faint);transition:color .2s,border-color .2s}
+.seg button[aria-pressed="true"]{color:var(--fg);border-bottom-color:var(--fg)}
+.seg button:hover{color:var(--fg)}
+.shoot{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;width:min(100%,380px);margin-top:4px}
+.side{justify-self:center;min-width:64px;min-height:44px;font-size:11px;letter-spacing:.2em;text-transform:uppercase;font-weight:400;color:var(--dim);display:flex;align-items:center;justify-content:center;gap:6px}
+.side:hover{color:var(--fg)}
+.side svg{width:22px;height:22px}
+#shutter{width:72px;height:72px;border-radius:50%;border:1px solid var(--fg);padding:6px;transition:transform .15s}
+#shutter::before{content:"";display:block;width:100%;height:100%;border-radius:50%;background:var(--fg);transition:transform .15s}
+#shutter:active::before{transform:scale(.9)}
+#shutter[disabled]{opacity:.35;pointer-events:none}
+#hint{min-height:18px;font-size:12.5px;color:var(--dim);text-align:center}
+
+/* ---------- RESULT ---------- */
+#v-result .stagebox{padding-bottom:4px}
+#shot{display:block;max-width:100%;max-height:100%;box-shadow:0 18px 60px rgba(0,0,0,.55);-webkit-touch-callout:default;user-select:auto}
+.result-ui{padding:8px 16px calc(14px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:10px}
+.send{display:flex;align-items:flex-start;gap:10px;width:min(100%,380px);font-size:13.5px;color:var(--dim);cursor:pointer}
+.send input{appearance:none;-webkit-appearance:none;flex:none;width:18px;height:18px;margin-top:2px;border:1px solid var(--fg);border-radius:0;display:grid;place-items:center}
+.send input:checked::after{content:"";width:10px;height:10px;background:var(--fg)}
+#status{min-height:18px;font-size:12.5px;color:var(--dim);text-align:center;width:min(100%,380px)}
+.acts{display:flex;gap:8px;width:min(100%,380px)}
+.acts .btn{flex:1;padding-left:10px;padding-right:10px}
+
+@media (min-width:760px){
+  .controls,.result-ui{padding-bottom:22px}
+}
+@media (max-height:620px){
+  #v-start h1{font-size:54px}
+  .seg button{min-height:34px}
+  #shutter{width:60px;height:60px}
+}
+@media (prefers-reduced-motion:reduce){
+  #count.tick,#flash.go{animation-duration:.01s}
+}
+</style>
+</head>
+<body data-view="start">
+
+<!-- ================= START ================= -->
+<section class="view" id="v-start" aria-labelledby="t-start">
+  <div class="bgc" id="start-bg"></div>
+  <p class="cap dim" id="start-eyebrow"></p>
+  <h1 id="t-start">Photobooth</h1>
+  <p class="lead">Take a photo with our wedding frame, keep it, and leave us a copy.</p>
+  <div class="field">
+    <label class="cap" for="guest">Your name <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
+    <input id="guest" type="text" maxlength="40" autocomplete="name" placeholder="So we know who it's from">
+  </div>
+  <button class="btn solid" id="start-btn">Open camera</button>
+  <button class="link" id="start-alt">Use my phone's camera app instead</button>
+  <div id="start-msg" role="status" hidden></div>
+  <a class="link back" id="back-link" href="./">← Back to the invitation</a>
+</section>
+
+<!-- ================= BOOTH ================= -->
+<section class="view" id="v-booth" aria-label="Photobooth camera">
+  <div class="top">
+    <a class="cap" id="back-link2" href="./">← Invitation</a>
+    <span class="cap">Photobooth</span>
+    <span class="cap" id="pending" aria-live="polite"></span>
+  </div>
+  <div class="stagebox" id="stagebox">
+    <div id="frame">
+      <video id="video" playsinline muted autoplay></video>
+      <div class="ph" id="ph" hidden></div>
+      <canvas id="overlay"></canvas>
+      <div id="count" aria-live="assertive"></div>
+      <div id="flash"></div>
+    </div>
+  </div>
+  <div class="controls" id="controls">
+    <div class="seg" id="seg-frame" role="group" aria-label="Frame"></div>
+    <div class="seg" id="seg-filter" role="group" aria-label="Filter"></div>
+    <div class="shoot">
+      <button class="side" id="flip" aria-label="Switch camera">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M4 9a8 8 0 0 1 14.5-3M20 15a8 8 0 0 1-14.5 3"/><path d="M19 2v4.5h-4.5M5 22v-4.5h4.5"/></svg>
+      </button>
+      <button id="shutter" aria-label="Take photo"></button>
+      <button class="side" id="timer" aria-label="Countdown timer">3s</button>
+    </div>
+    <p id="hint" aria-live="polite"></p>
+  </div>
+  <input type="file" id="file" accept="image/*" capture="user" hidden>
+</section>
+
+<!-- ================= RESULT ================= -->
+<section class="view" id="v-result" aria-label="Your photo">
+  <div class="top">
+    <a class="cap" id="back-link3" href="./">← Invitation</a>
+    <span class="cap">Your photo</span>
+    <span class="cap" id="pending2" aria-live="polite" style="min-width:74px;text-align:right;color:var(--dim)"></span>
+  </div>
+  <div class="stagebox"><img id="shot" alt="Your photobooth picture"></div>
+  <div class="result-ui">
+    <label class="send" id="send-row"><input type="checkbox" id="send" checked><span>Send a copy to <span id="send-names"></span>'s album when I save or share</span></label>
+    <p id="status" role="status"></p>
+    <div class="acts">
+      <button class="btn solid" id="save">Save</button>
+      <button class="btn" id="share" hidden>Share</button>
+      <button class="btn" id="again">Retake</button>
+    </div>
+    <p class="dim" style="font-size:12px;text-align:center">Tip: press and hold the photo to save it to your gallery.</p>
+  </div>
+</section>
+
+<script>
+(() => {
+"use strict";
+const $ = s => document.querySelector(s);
+const C = CONFIG;
+const BG = "#0E0D0C", FG = "#F6F2EC", PANEL = "#171513";
+const SERIF = '"Instrument Serif", Georgia, serif';
+const SANS  = '"Inter Tight", system-ui, sans-serif';
+const fg = a => `rgba(246,242,236,${a})`;
+const bg = a => `rgba(14,13,12,${a})`;
+
+/* ============================================================
+   BINGKAI — semua ukuran dalam piksel hasil akhir (lebar 1080)
+   ============================================================ */
+function tracked(ctx, text, x, y, size, track, align = "center", weight = 400) {
+  ctx.font = `${weight} ${size}px ${SANS}`;
+  const chars = [...String(text).toUpperCase()], sp = size * track;
+  const w = chars.map(c => ctx.measureText(c).width);
+  const total = w.reduce((a, b) => a + b, 0) + sp * (chars.length - 1);
+  let cx = align === "center" ? x - total / 2 : align === "right" ? x - total : x;
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  chars.forEach((c, i) => { ctx.fillText(c, cx, y); cx += w[i] + sp; });
+}
+function serif(ctx, text, x, y, size, maxW) {
+  ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  do { ctx.font = `italic 400 ${size}px ${SERIF}`; size -= 2; } while (maxW && ctx.measureText(text).width > maxW && size > 20);
+  ctx.fillText(text, x, y);
+}
+function hair(ctx, x, y, w, h, a = .3) { ctx.strokeStyle = fg(a); ctx.lineWidth = 2; ctx.strokeRect(x + 1, y + 1, w - 2, h - 2); }
+const meta = () => `${C.tanggal}   —   ${C.tempat}`;
+
+/* Kertas tua untuk bingkai Vintage: dibuat sekali dengan angka acak ber-seed,
+   jadi pratinjau dan hasil selalu sama persis */
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+let paperCache = null;
+const STRIP = { x: 214, y: 34, w: 652, h: 1852 };
+function paper() {
+  if (paperCache) return paperCache;
+  const W = 1080, H = 1920, c = document.createElement("canvas"); c.width = W; c.height = H;
+  const x = c.getContext("2d"), R = rng(26122026);
+  x.fillStyle = "#ECE2CB"; x.fillRect(0, 0, W, H);
+  for (let i = 0; i < 46; i++) {                       // noda kekuningan
+    const px = R() * W, py = R() * H, r = 60 + R() * 360, g = x.createRadialGradient(px, py, 0, px, py, r);
+    g.addColorStop(0, `rgba(176,132,66,${.02 + R() * .05})`); g.addColorStop(1, "rgba(176,132,66,0)");
+    x.fillStyle = g; x.fillRect(px - r, py - r, r * 2, r * 2);
+  }
+  const edge = (x0, y0, x1, y1) => { const g = x.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, "rgba(140,98,46,.22)"); g.addColorStop(1, "rgba(140,98,46,0)"); return g; };
+  x.fillStyle = edge(0, 0, 70, 0); x.fillRect(0, 0, 70, H);
+  x.fillStyle = edge(W, 0, W - 70, 0); x.fillRect(W - 70, 0, 70, H);
+  x.fillStyle = edge(0, 0, 0, 60); x.fillRect(0, 0, W, 60);
+  x.fillStyle = edge(0, H, 0, H - 60); x.fillRect(0, H - 60, W, 60);
+  // strip foto: kertas lebih putih, sedikit terangkat
+  x.save(); x.shadowColor = "rgba(90,64,30,.28)"; x.shadowBlur = 18; x.shadowOffsetY = 3;
+  x.fillStyle = "#F6F1E4"; x.fillRect(STRIP.x, STRIP.y, STRIP.w, STRIP.h); x.restore();
+  for (let i = 0; i < 10; i++) {                       // noda halus di strip
+    const px = STRIP.x + R() * STRIP.w, py = STRIP.y + R() * STRIP.h, r = 40 + R() * 180, g = x.createRadialGradient(px, py, 0, px, py, r);
+    g.addColorStop(0, `rgba(190,150,90,${.02 + R() * .035})`); g.addColorStop(1, "rgba(190,150,90,0)");
+    x.fillStyle = g; x.fillRect(px - r, py - r, r * 2, r * 2);
+  }
+  // retakan/lipatan
+  const crack = (x0, y0, len, horiz) => {
+    x.beginPath(); x.moveTo(x0, y0); let cx = x0, cy = y0;
+    for (let k = 0; k < len; k += 14) { cx += horiz ? 14 : (R() - .5) * 5; cy += horiz ? (R() - .5) * 9 : 14; x.lineTo(cx, cy); }
+    x.strokeStyle = `rgba(110,82,48,${.1 + R() * .1})`; x.lineWidth = .8 + R() * .8; x.stroke();
+  };
+  for (let i = 0; i < 4; i++) crack(R() < .5 ? R() * 34 : W - R() * 34, R() * H, 24 + R() * 60, true);
+  for (let i = 0; i < 4; i++) crack(R() * W, R() < .5 ? R() * 30 : H - 90 - R() * 30, 30 + R() * 60, false);
+  [920 - 14, 1348 - 14].forEach(y => {                 // lipatan melintang di strip
+    x.fillStyle = "rgba(120,92,54,.13)"; x.fillRect(STRIP.x, y, STRIP.w, 2);
+    x.fillStyle = "rgba(255,255,255,.5)"; x.fillRect(STRIP.x, y + 2, STRIP.w, 1);
+    crack(STRIP.x + R() * 60, y + 1, 80 + R() * 120, true);
+  });
+  // butiran kertas
+  const img = x.getImageData(0, 0, W, H), d = img.data;
+  for (let i = 0; i < d.length; i += 4) { const n = (R() - .5) * 14; d[i] += n; d[i + 1] += n; d[i + 2] += n * .9; }
+  x.putImageData(img, 0, 0);
+  return paperCache = c;
+}
+
+const FRAMES = {
+  portrait: {
+    label: "Portrait", w: 1080, h: 1350,
+    slots: [{ x: 54, y: 54, w: 972, h: 1040 }],
+    art(ctx) {
+      hair(ctx, 54, 54, 972, 1040, .22);
+      ctx.fillStyle = FG; serif(ctx, C.mempelai, 540, 1212, 92, 900);
+      ctx.fillStyle = fg(.7); tracked(ctx, meta(), 540, 1282, 21, .26);
+    }
+  },
+  strip: {
+    label: "Strip", w: 1080, h: 1920,
+    slots: [0, 1, 2].map(i => ({ x: 72, y: 168 + i * 492, w: 936, h: 468 })),
+    art(ctx) {
+      ctx.fillStyle = fg(.7); tracked(ctx, "The wedding of", 540, 96, 21, .3);
+      ctx.fillStyle = fg(.35); ctx.fillRect(510, 122, 60, 2);
+      this.slots.forEach((s, i) => {
+        hair(ctx, s.x, s.y, s.w, s.h, .22);
+        ctx.save(); ctx.shadowColor = "rgba(0,0,0,.55)"; ctx.shadowBlur = 10;
+        ctx.fillStyle = fg(.85); tracked(ctx, `N° 0${i + 1}`, s.x + 26, s.y + s.h - 26, 20, .24, "left", 500);
+        ctx.restore();
+      });
+      ctx.fillStyle = FG; serif(ctx, C.mempelai, 540, 1766, 98, 900);
+      ctx.fillStyle = fg(.7); tracked(ctx, meta(), 540, 1838, 21, .26);
+    }
+  },
+  vintage: {
+    label: "Vintage", w: 1080, h: 1920, filter: "film",
+    slots: [0, 1, 2, 3].map(i => ({ x: 240, y: 64 + i * 428, w: 600, h: 400 })),
+    bg(ctx) { ctx.drawImage(paper(), 0, 0); },
+    art(ctx) {
+      this.slots.forEach(s => { ctx.strokeStyle = "rgba(40,30,18,.18)"; ctx.lineWidth = 1.5; ctx.strokeRect(s.x + .75, s.y + .75, s.w - 1.5, s.h - 1.5); });
+      ctx.fillStyle = "rgba(38,30,22,.9)"; serif(ctx, C.mempelai, 540, 1820, 58, 600);
+      ctx.fillStyle = "rgba(38,30,22,.62)"; tracked(ctx, meta(), 540, 1860, 15, .22);
+    }
+  },
+  story: {
+    label: "Story", w: 1080, h: 1920,
+    slots: [{ x: 0, y: 0, w: 1080, h: 1920 }],
+    art(ctx) {
+      let g = ctx.createLinearGradient(0, 0, 0, 460);
+      g.addColorStop(0, bg(.62)); g.addColorStop(1, bg(0));
+      ctx.fillStyle = g; ctx.fillRect(0, 0, 1080, 460);
+      g = ctx.createLinearGradient(0, 1080, 0, 1920);
+      g.addColorStop(0, bg(0)); g.addColorStop(.55, bg(.62)); g.addColorStop(1, bg(.92));
+      ctx.fillStyle = g; ctx.fillRect(0, 1080, 1080, 840);
+      hair(ctx, 40, 40, 1000, 1840, .42);
+      ctx.save(); ctx.shadowColor = "rgba(0,0,0,.5)"; ctx.shadowBlur = 26;
+      ctx.fillStyle = fg(.9); tracked(ctx, "The wedding of", 540, 136, 22, .3);
+      const [a, b] = C.mempelai.split(/\s*&\s*/);
+      ctx.fillStyle = FG;
+      if (b) { serif(ctx, a, 540, 1570, 138, 920); serif(ctx, "& " + b, 540, 1700, 138, 920); }
+      else serif(ctx, C.mempelai, 540, 1660, 120, 920);
+      ctx.fillStyle = fg(.82); tracked(ctx, meta(), 540, 1794, 21, .26);
+      ctx.restore();
+    }
+  }
+};
+
+/* ============================================================
+   FILTER — daftar operasi yang sama dipakai untuk pratinjau (CSS)
+   dan hasil akhir (piksel), supaya yang dilihat = yang didapat
+   ============================================================ */
+const FILTERS = {
+  natural: { label: "Natural", ops: [], grain: 0 },
+  mono:    { label: "Mono",    ops: [["grayscale", 1], ["contrast", 1.14], ["brightness", 1.03]], grain: 13 },
+  golden:  { label: "Golden",  ops: [["sepia", .3], ["saturate", 1.18], ["contrast", 1.06], ["brightness", 1.03]], grain: 8 },
+  film:    { label: "Film",    ops: [["grayscale", 1], ["contrast", .9], ["brightness", 1.06], ["sepia", .13]], grain: 13, vignette: .3 }
+};
+const cssFilter = f => f.ops.map(([n, v]) => n === "hue-rotate" ? `${n}(${v}deg)` : `${n}(${v})`).join(" ") || "none";
+function opMatrix([n, v]) { // 3x4, urutan baris r,g,b; kolom R,G,B,offset(0..255)
+  const i = 1 - v;
+  if (n === "grayscale") return [.2126 + .7874 * i, .7152 - .7152 * i, .0722 - .0722 * i, 0, .2126 - .2126 * i, .7152 + .2848 * i, .0722 - .0722 * i, 0, .2126 - .2126 * i, .7152 - .7152 * i, .0722 + .9278 * i, 0];
+  if (n === "sepia") return [.393 + .607 * i, .769 - .769 * i, .189 - .189 * i, 0, .349 - .349 * i, .686 + .314 * i, .168 - .168 * i, 0, .272 - .272 * i, .534 - .534 * i, .131 + .869 * i, 0];
+  if (n === "saturate") return [.213 + .787 * v, .715 - .715 * v, .072 - .072 * v, 0, .213 - .213 * v, .715 + .285 * v, .072 - .072 * v, 0, .213 - .213 * v, .715 - .715 * v, .072 + .928 * v, 0];
+  if (n === "contrast") { const o = 127.5 * (1 - v); return [v, 0, 0, o, 0, v, 0, o, 0, 0, v, o]; }
+  if (n === "brightness") return [v, 0, 0, 0, 0, v, 0, 0, 0, 0, v, 0];
+  if (n === "hue-rotate") {
+    const a = v * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+    return [.213 + c * .787 - s * .213, .715 - c * .715 - s * .715, .072 - c * .072 + s * .928, 0,
+            .213 - c * .213 + s * .143, .715 + c * .285 + s * .140, .072 - c * .072 - s * .283, 0,
+            .213 - c * .213 - s * .787, .715 - c * .715 + s * .715, .072 + c * .928 + s * .072, 0];
+  }
+  return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0];
+}
+function compose(ops) {
+  let m = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0];
+  for (const op of ops) {
+    const b = opMatrix(op), r = [];
+    for (let row = 0; row < 3; row++) {
+      for (let col = 0; col < 4; col++) {
+        let v = 0;
+        for (let k = 0; k < 3; k++) v += b[row * 4 + k] * m[k * 4 + col];
+        if (col === 3) v += b[row * 4 + 3];
+        r.push(v);
+      }
+    }
+    m = r;
+  }
+  return m;
+}
+function vignette(ctx, s, strength) {
+  if (!strength) return;
+  const cx = s.x + s.w / 2, cy = s.y + s.h / 2, r = Math.hypot(s.w, s.h) / 2;
+  const g = ctx.createRadialGradient(cx, cy, r * .42, cx, cy, r);
+  g.addColorStop(0, "rgba(20,12,4,0)"); g.addColorStop(1, `rgba(20,12,4,${strength})`);
+  ctx.save(); ctx.beginPath(); ctx.rect(s.x, s.y, s.w, s.h); ctx.clip();
+  ctx.fillStyle = g; ctx.fillRect(s.x, s.y, s.w, s.h); ctx.restore();
+}
+function applyFilter(canvas, f) {
+  if (!f.ops.length && !f.grain) return;
+  const ctx = canvas.getContext("2d"), img = ctx.getImageData(0, 0, canvas.width, canvas.height), d = img.data;
+  const m = compose(f.ops), gr = f.grain * 2;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i], g = d[i + 1], b = d[i + 2], n = gr ? (Math.random() - .5) * gr : 0;
+    d[i]     = m[0] * r + m[1] * g + m[2]  * b + m[3]  + n;
+    d[i + 1] = m[4] * r + m[5] * g + m[6]  * b + m[7]  + n;
+    d[i + 2] = m[8] * r + m[9] * g + m[10] * b + m[11] + n;
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const S = {
+  frame: "portrait", filter: "natural", timer: 3, facing: "user",
+  mode: "live",          // "live" = kamera di halaman, "file" = kamera bawaan HP
+  stream: null, mirror: true, shots: [], busy: false,
+  blob: null, url: null, id: null, queued: false
+};
+const el = {
+  video: $("#video"), ph: $("#ph"), overlay: $("#overlay"), frame: $("#frame"), box: $("#stagebox"),
+  count: $("#count"), flash: $("#flash"), shutter: $("#shutter"), hint: $("#hint"), controls: $("#controls"),
+  file: $("#file"), shot: $("#shot"), status: $("#status"), send: $("#send"), msg: $("#start-msg")
+};
+const F = () => FRAMES[S.frame];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const view = v => { document.body.dataset.view = v; if (v === "booth") requestAnimationFrame(layout); };
+
+/* ============================================================
+   PRATINJAU
+   ============================================================ */
+function drawFrame(ctx, scale, shots, hole) {
+  const f = F();
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  ctx.clearRect(0, 0, f.w, f.h);
+  if (f.bg) f.bg(ctx); else { ctx.fillStyle = BG; ctx.fillRect(0, 0, f.w, f.h); }
+  const flt = FILTERS[S.filter];
+  f.slots.forEach((s, i) => {
+    if (shots[i]) ctx.drawImage(shots[i], s.x, s.y, s.w, s.h);
+    else if (i === hole) { ctx.clearRect(s.x, s.y, s.w, s.h); vignette(ctx, s, flt.vignette); }
+    else { ctx.fillStyle = PANEL; ctx.fillRect(s.x, s.y, s.w, s.h); }
+  });
+  f.art(ctx);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+}
+function layout() {
+  const f = F(), r = el.box.getBoundingClientRect();
+  const aw = r.width - 32, ah = r.height - 12;
+  if (aw <= 0 || ah <= 0) return;
+  const k = Math.min(aw / f.w, ah / f.h), w = Math.floor(f.w * k), h = Math.floor(f.h * k);
+  el.frame.style.width = w + "px"; el.frame.style.height = h + "px";
+  const dpr = Math.min(window.devicePixelRatio || 1, 3), cw = Math.min(f.w, Math.round(w * dpr));
+  el.overlay.width = cw; el.overlay.height = Math.round(cw * f.h / f.w);
+  paint();
+}
+function paint() {
+  const f = F(), i = Math.min(S.shots.length, f.slots.length - 1), s = f.slots[i];
+  const live = S.shots.length < f.slots.length;
+  drawFrame(el.overlay.getContext("2d"), el.overlay.width / f.w, S.shots, live ? i : -1);
+  const pos = n => { n.style.left = s.x / f.w * 100 + "%"; n.style.top = s.y / f.h * 100 + "%"; n.style.width = s.w / f.w * 100 + "%"; n.style.height = s.h / f.h * 100 + "%"; };
+  [el.video, el.ph, el.count].forEach(pos);
+  el.video.hidden = S.mode !== "live"; el.ph.hidden = S.mode !== "file";
+  el.video.classList.toggle("mirror", S.mirror);
+  el.video.style.filter = cssFilter(FILTERS[S.filter]);
+  if (S.mode === "file") {
+    const n = f.slots.length;
+    el.ph.textContent = n > 1 ? `Tap the button below for photo ${S.shots.length + 1} of ${n}` : "Tap the button below to take your photo";
+  }
+  el.hint.textContent = S.busy ? "" : f.slots.length > 1 && S.mode === "live" ? `${["", "", "Two", "Three", "Four"][f.slots.length]} photos, one after another. Strike a pose for each.` : "";
+}
+function segment(root, items, key) {
+  root.innerHTML = "";
+  Object.entries(items).forEach(([id, it]) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = it.label; b.setAttribute("aria-pressed", String(S[key] === id));
+    b.addEventListener("click", () => {
+      if (S.busy) return;
+      S[key] = id;
+      [...root.children].forEach(c => c.setAttribute("aria-pressed", String(c === b)));
+      if (key === "frame") {
+        S.shots = [];
+        if (FRAMES[id].filter) { S.filter = FRAMES[id].filter; [...$("#seg-filter").children].forEach((c, k) => c.setAttribute("aria-pressed", String(Object.keys(FILTERS)[k] === S.filter))); }
+        layout();
+      }
+      paint();
+    });
+    root.appendChild(b);
+  });
+}
+
+/* ============================================================
+   KAMERA
+   ============================================================ */
+function stopCam() { if (S.stream) { S.stream.getTracks().forEach(t => t.stop()); S.stream = null; } }
+async function startCam() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw Object.assign(new Error("unsupported"), { name: "Unsupported" });
+  stopCam();
+  S.stream = await navigator.mediaDevices.getUserMedia({
+    audio: false,
+    video: { facingMode: { ideal: S.facing }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+  });
+  el.video.srcObject = S.stream;
+  await new Promise(r => el.video.readyState >= 2 ? r() : el.video.addEventListener("loadeddata", r, { once: true }));
+  await el.video.play().catch(() => {});
+  const set = S.stream.getVideoTracks()[0].getSettings ? S.stream.getVideoTracks()[0].getSettings() : {};
+  S.mirror = set.facingMode !== "environment";
+  try {
+    const cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "videoinput");
+    $("#flip").style.visibility = cams.length > 1 ? "visible" : "hidden";
+  } catch (e) {}
+  try { if (navigator.wakeLock) await navigator.wakeLock.request("screen"); } catch (e) {}
+}
+function grab(src, slot, mirror) {
+  const c = document.createElement("canvas"); c.width = slot.w; c.height = slot.h;
+  const x = c.getContext("2d", { willReadFrequently: true });
+  const sw = src.videoWidth || src.naturalWidth, sh = src.videoHeight || src.naturalHeight;
+  const k = Math.max(slot.w / sw, slot.h / sh), dw = sw * k, dh = sh * k;
+  if (mirror) { x.translate(slot.w, 0); x.scale(-1, 1); }
+  x.drawImage(src, (slot.w - dw) / 2, (slot.h - dh) / 2, dw, dh);
+  applyFilter(c, FILTERS[S.filter]);
+  vignette(x, { x: 0, y: 0, w: slot.w, h: slot.h }, FILTERS[S.filter].vignette);
+  return c;
+}
+async function countdown(n) {
+  for (let i = n; i > 0; i--) {
+    el.count.textContent = i; el.count.classList.remove("tick"); void el.count.offsetWidth; el.count.classList.add("tick");
+    await sleep(1000);
+  }
+  el.count.textContent = "";
+}
+function flash() { el.flash.classList.remove("go"); void el.flash.offsetWidth; el.flash.classList.add("go"); }
+function setBusy(b) { S.busy = b; el.controls.classList.toggle("busy", b); el.shutter.disabled = b; paint(); }
+
+async function shootLive() {
+  if (S.busy || !S.stream) return;
+  setBusy(true);
+  const f = F();
+  try {
+    S.shots = []; paint();
+    for (let i = 0; i < f.slots.length; i++) {
+      await countdown(i === 0 ? S.timer : Math.min(S.timer, 3));
+      S.shots.push(grab(el.video, f.slots[i], S.mirror));
+      flash(); paint();
+      if (i < f.slots.length - 1) await sleep(700);
+    }
+    await sleep(350);
+    await finish();
+  } finally { setBusy(false); }
+}
+function loadImage(file) {
+  return new Promise((res, rej) => {
+    const u = URL.createObjectURL(file), im = new Image();
+    im.onload = () => { res(im); setTimeout(() => URL.revokeObjectURL(u), 4000); };
+    im.onerror = () => { URL.revokeObjectURL(u); rej(new Error("That file couldn't be read as a photo.")); };
+    im.src = u;
+  });
+}
+async function onFile() {
+  const file = el.file.files && el.file.files[0];
+  el.file.value = "";
+  if (!file) return;
+  setBusy(true);
+  try {
+    const f = F(), im = await loadImage(file);
+    if (S.shots.length >= f.slots.length) S.shots = [];
+    S.shots.push(grab(im, f.slots[S.shots.length], false));
+    paint();
+    if (S.shots.length === f.slots.length) { await sleep(300); await finish(); }
+  } catch (e) { el.hint.textContent = e.message; }
+  finally { setBusy(false); }
+}
+
+/* ============================================================
+   HASIL
+   ============================================================ */
+async function finish() {
+  const f = F(), c = document.createElement("canvas");
+  c.width = f.w; c.height = f.h;
+  drawFrame(c.getContext("2d"), 1, S.shots, -1);
+  const blob = await new Promise(r => c.toBlob(r, "image/jpeg", .88));
+  if (!blob) { el.hint.textContent = "Sorry, the photo couldn't be created on this device."; S.shots = []; paint(); return; }
+  if (S.url) URL.revokeObjectURL(S.url);
+  S.blob = blob; S.url = URL.createObjectURL(blob); S.queued = false;
+  S.id = (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 12));
+  el.shot.src = S.url;
+  el.status.textContent = "";
+  const file = makeFile();
+  $("#share").hidden = !(navigator.canShare && file && navigator.canShare({ files: [file] }));
+  view("result");
+}
+function fileName() {
+  const d = new Date(), p = n => String(n).padStart(2, "0");
+  return `${C.mempelai.replace(/[^A-Za-z]+/g, "-")}-photobooth-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.jpg`;
+}
+function makeFile() { try { return new File([S.blob], fileName(), { type: "image/jpeg" }); } catch (e) { return null; } }
+function maybeSend() {
+  if (!C.uploadUrl || S.queued || !el.send.checked || !S.blob) return;
+  S.queued = true;
+  const rd = new FileReader();
+  rd.onload = () => {
+    enqueue({ id: S.id, nama: $("#guest").value.trim().slice(0, 40), frame: S.frame, filter: S.filter, img: String(rd.result).split(",")[1], ts: Date.now() });
+  };
+  rd.readAsDataURL(S.blob);
+}
+$("#save").addEventListener("click", () => {
+  const a = document.createElement("a");
+  a.href = S.url; a.download = fileName(); document.body.appendChild(a); a.click(); a.remove();
+  maybeSend();
+});
+$("#share").addEventListener("click", async () => {
+  const file = makeFile();
+  maybeSend();
+  try { await navigator.share({ files: [file], title: `${C.mempelai} · Photobooth` }); } catch (e) {}
+});
+$("#again").addEventListener("click", () => { S.shots = []; view("booth"); paint(); });
+
+/* ============================================================
+   KIRIM KE DRIVE — antre, simpan di HP, kirim ulang otomatis
+   ============================================================ */
+const Q = (() => {
+  let db = null, mem = [];
+  const open = () => new Promise(res => {
+    try {
+      const rq = indexedDB.open("bf-photobooth", 1);
+      rq.onupgradeneeded = () => rq.result.createObjectStore("q", { keyPath: "id" });
+      rq.onsuccess = () => { db = rq.result; res(); };
+      rq.onerror = rq.onblocked = () => res();
+    } catch (e) { res(); }
+  });
+  const tx = (mode, fn) => new Promise(res => {
+    try { const t = db.transaction("q", mode), rq = fn(t.objectStore("q")); t.oncomplete = () => res(rq && rq.result); t.onerror = t.onabort = () => res(null); }
+    catch (e) { res(null); }
+  });
+  return {
+    ready: open(),
+    async all() { await this.ready; return db ? (await tx("readonly", s => s.getAll())) || [] : mem.slice(); },
+    async put(it) { await this.ready; if (db) await tx("readwrite", s => s.put(it)); else mem.push(it); },
+    async del(id) { await this.ready; if (db) await tx("readwrite", s => s.delete(id)); else mem = mem.filter(x => x.id !== id); }
+  };
+})();
+let pumping = false, corsOK = false, retryT = 0;
+async function badge() {
+  const n = (await Q.all()).length, t = n ? `↑ ${n} to send` : "";
+  $("#pending").textContent = t; $("#pending2").textContent = t;
+  return n;
+}
+async function enqueue(it) {
+  const all = await Q.all();
+  if (all.length >= 30) await Q.del(all.sort((a, b) => a.ts - b.ts)[0].id);
+  await Q.put(it);
+  el.status.textContent = "Sending to the album…";
+  pump();
+}
+async function post(it) { // "ok" | "drop" | "retry"
+  const body = JSON.stringify(it);
+  try {
+    const r = await fetch(C.uploadUrl, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body });
+    const j = await r.json();
+    corsOK = true;
+    if (j && j.ok) return "ok";
+    return j && j.retry ? "retry" : "drop";
+  } catch (e) {
+    if (navigator.onLine === false || corsOK) return "retry";
+    try { await fetch(C.uploadUrl, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body }); return "ok"; }
+    catch (e2) { return "retry"; }
+  }
+}
+async function pump() {
+  if (pumping || !C.uploadUrl) return;
+  pumping = true; clearTimeout(retryT);
+  try {
+    for (const it of (await Q.all()).sort((a, b) => a.ts - b.ts)) {
+      await badge();
+      const r = await post(it);
+      const mine = it.id === S.id;
+      if (r === "ok") { await Q.del(it.id); if (mine) el.status.textContent = "Sent to the album. Thank you!"; }
+      else if (r === "drop") { await Q.del(it.id); if (mine) el.status.textContent = "The album couldn't take this photo, but it's saved for you."; }
+      else {
+        if (mine) el.status.textContent = "No signal right now. We'll send it automatically; keep this page open.";
+        retryT = setTimeout(pump, 20000);
+        break;
+      }
+    }
+  } finally { pumping = false; badge(); }
+}
+window.addEventListener("online", pump);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) pump(); });
+
+/* ============================================================
+   MULAI
+   ============================================================ */
+function explain(err) {
+  const n = err && err.name;
+  if (n === "NotAllowedError" || n === "SecurityError") return "The camera was blocked. Allow camera access for this page in your browser settings and try again, or use your phone's camera app.";
+  if (n === "NotFoundError" || n === "OverconstrainedError") return "No camera was found on this device. You can still use your phone's camera app.";
+  if (n === "NotReadableError") return "Another app is using the camera. Close it and try again, or use your phone's camera app.";
+  return "This browser can't open the camera here. Open this page in Chrome or Safari, or use your phone's camera app.";
+}
+function say(text, withCopy) {
+  el.msg.hidden = false; el.msg.textContent = text;
+  if (withCopy && navigator.clipboard) {
+    const b = document.createElement("button"); b.className = "link"; b.textContent = "Copy the page link";
+    b.addEventListener("click", async () => { try { await navigator.clipboard.writeText(location.href); b.textContent = "Link copied"; } catch (e) {} });
+    el.msg.appendChild(b);
+  }
+}
+function enterBooth(mode) {
+  S.mode = mode; S.shots = [];
+  $("#flip").hidden = mode !== "live"; $("#timer").style.visibility = mode === "live" ? "visible" : "hidden";
+  try { localStorage.setItem("bf-guest", $("#guest").value.trim()); } catch (e) {}
+  view("booth"); layout();
+}
+$("#start-btn").addEventListener("click", async e => {
+  const b = e.currentTarget; b.disabled = true; b.textContent = "Opening camera…";
+  try { await startCam(); enterBooth("live"); }
+  catch (err) { say(explain(err), true); }
+  finally { b.disabled = false; b.textContent = "Open camera"; }
+});
+$("#start-alt").addEventListener("click", () => { stopCam(); enterBooth("file"); });
+el.shutter.addEventListener("click", () => S.mode === "live" ? shootLive() : el.file.click());
+el.file.addEventListener("change", onFile);
+$("#flip").addEventListener("click", async () => {
+  if (S.busy) return;
+  S.facing = S.facing === "user" ? "environment" : "user";
+  try { await startCam(); paint(); } catch (err) { el.hint.textContent = explain(err); }
+});
+$("#timer").addEventListener("click", e => {
+  if (S.busy) return;
+  S.timer = S.timer === 3 ? 5 : S.timer === 5 ? 10 : 3;
+  e.currentTarget.textContent = S.timer + "s";
+});
+window.addEventListener("resize", layout);
+if (window.ResizeObserver) new ResizeObserver(layout).observe(el.box);
+window.addEventListener("pagehide", stopCam);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && S.mode === "live" && document.body.dataset.view !== "start" && S.stream && S.stream.getVideoTracks().every(t => t.readyState === "ended")) startCam().then(paint).catch(() => {});
+});
+
+// isi halaman
+$("#start-eyebrow").textContent = `${C.mempelai}  ·  ${C.tanggal}`;
+$("#send-names").textContent = C.mempelai;
+if (C.latar) $("#start-bg").style.backgroundImage = `url("${C.latar}")`;
+["#back-link", "#back-link2", "#back-link3"].forEach(s => $(s).href = C.undangan || "./");
+if (!C.uploadUrl) $("#send-row").hidden = true;
+try {
+  const to = new URLSearchParams(location.search).get("to");
+  $("#guest").value = (to || localStorage.getItem("bf-guest") || "").slice(0, 40);
+} catch (e) {}
+segment($("#seg-frame"), FRAMES, "frame");
+segment($("#seg-filter"), FILTERS, "filter");
+if (/Instagram|FBAN|FBAV|FB_IAB|TikTok|musical_ly|Line\/|MicroMessenger/i.test(navigator.userAgent))
+  say("You're inside an app's built-in browser, where the camera often doesn't work. If it fails, open this page in Chrome or Safari.", true);
+
+// huruf harus siap sebelum bingkai digambar
+const fonts = document.fonts && document.fonts.load ? Promise.all([
+  document.fonts.load(`italic 400 90px ${SERIF}`, "Bagaskara & Farisa"),
+  document.fonts.load(`400 21px ${SANS}`, "THE WEDDING OF N° 0123456789")
+]).catch(() => {}) : Promise.resolve();
+Promise.race([fonts, sleep(3500)]).then(() => { if (document.body.dataset.view === "booth") paint(); });
+window.__fontsReady = fonts;
+
+badge().then(n => { if (n) pump(); });
+})();
+</script>
+</body>
+</html>
