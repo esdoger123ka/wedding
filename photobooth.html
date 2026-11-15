@@ -120,6 +120,11 @@ body[data-view="result"] #v-result{display:flex}
 #v-result .stagebox{padding-bottom:4px}
 #shot{display:block;max-width:100%;max-height:100%;box-shadow:0 18px 60px rgba(0,0,0,.55);-webkit-touch-callout:default;user-select:auto}
 .result-ui{padding:8px 16px calc(14px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:10px}
+.msgf{display:block;width:min(100%,380px)}
+.msgf input{width:100%;background:transparent;border:0;border-bottom:1px solid var(--line);padding:6px 0;font-size:16px;border-radius:0}
+.msgf input:focus{outline:0;border-bottom-color:var(--fg)}
+.msgf input::placeholder{color:var(--faint)}
+.msgf input:disabled{opacity:.55}
 .send{display:flex;align-items:flex-start;gap:10px;width:min(100%,380px);font-size:13.5px;color:var(--dim);cursor:pointer}
 .send input{appearance:none;-webkit-appearance:none;flex:none;width:18px;height:18px;margin-top:2px;border:1px solid var(--fg);border-radius:0;display:grid;place-items:center}
 .send input:checked::after{content:"";width:10px;height:10px;background:var(--fg)}
@@ -200,6 +205,7 @@ body[data-view="result"] #v-result{display:flex}
   </div>
   <div class="stagebox"><img id="shot" alt="Your photobooth picture"></div>
   <div class="result-ui">
+    <label class="msgf" id="msg-row"><span class="cap dim">A few words for the couple <span style="text-transform:none;letter-spacing:0">(optional)</span></span><input id="pesan" type="text" maxlength="120" autocomplete="off" enterkeyhint="done" placeholder="Shown with your photo in the gallery"></label>
     <label class="send" id="send-row"><input type="checkbox" id="send" checked><span>Add this photo to the wedding gallery on this website when I save or share</span></label>
     <p id="status" role="status"></p>
     <p class="cap" id="pending2" aria-live="polite"></p>
@@ -585,6 +591,8 @@ async function finish() {
   const blob = await new Promise(r => c.toBlob(r, "image/jpeg", .88));
   if (!blob) { el.hint.textContent = "Sorry, the photo couldn't be created on this device."; S.shots = []; paint(); return; }
   if (S.url) URL.revokeObjectURL(S.url);
+  if (S.queued) $("#pesan").value = "";
+  $("#pesan").disabled = false;
   S.blob = blob; S.url = URL.createObjectURL(blob); S.queued = false;
   S.id = (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 12));
   el.shot.src = S.url;
@@ -600,10 +608,10 @@ function fileName() {
 function makeFile() { try { return new File([S.blob], fileName(), { type: "image/jpeg" }); } catch (e) { return null; } }
 function maybeSend() {
   if (!C.uploadUrl || S.queued || !el.send.checked || !S.blob) return;
-  S.queued = true;
+  S.queued = true; $("#pesan").disabled = true;   // ucapan ikut terkirim bersama foto
   const rd = new FileReader();
   rd.onload = () => {
-    enqueue({ id: S.id, nama: $("#guest").value.trim().slice(0, 40), frame: S.frame, filter: S.filter, img: String(rd.result).split(",")[1], ts: Date.now() });
+    enqueue({ id: S.id, nama: $("#guest").value.trim().slice(0, 40), frame: S.frame, filter: S.filter, pesan: $("#pesan").value.trim().slice(0, 120), img: String(rd.result).split(",")[1], ts: Date.now() });
   };
   rd.readAsDataURL(S.blob);
 }
@@ -749,7 +757,8 @@ document.querySelectorAll(".gal-link").forEach(a => {
 });
 if (C.latar) $("#start-bg").style.backgroundImage = `url("${C.latar}")`;
 ["#back-link", "#back-link2", "#back-link3"].forEach(s => $(s).href = C.undangan || "./");
-if (!C.uploadUrl) $("#send-row").hidden = true;
+if (!C.uploadUrl) { $("#send-row").hidden = true; $("#msg-row").hidden = true; }
+$("#send").addEventListener("change", e => { $("#msg-row").hidden = !e.target.checked; });
 try {
   const to = new URLSearchParams(location.search).get("to");
   $("#guest").value = (to || localStorage.getItem("bf-guest") || "").slice(0, 40);
