@@ -82,6 +82,11 @@ main{max-width:1240px;margin:0 auto;padding:6px 14px calc(56px + env(safe-area-i
 .skel:nth-child(3n+2){aspect-ratio:4/5}
 @keyframes pulse{50%{opacity:.55}}
 
+/* tombol "Take a photo" yang ikut turun saat menggulir */
+.fab{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));z-index:40;transform:translate(-50%,24px);opacity:0;pointer-events:none;transition:opacity .35s,transform .35s;box-shadow:0 10px 34px rgba(0,0,0,.55);min-width:180px}
+.fab.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.fab:hover{background:var(--fg);color:var(--bg)}
+
 /* ---------- LIGHTBOX ---------- */
 #lb{position:fixed;inset:0;z-index:50;background:rgba(10,9,8,.97);display:flex;flex-direction:column}
 #lb .bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:calc(10px + env(safe-area-inset-top)) 14px 6px}
@@ -142,6 +147,8 @@ main{max-width:1240px;margin:0 auto;padding:6px 14px calc(56px + env(safe-area-i
   <div class="state" id="state" role="status" hidden></div>
 </main>
 
+<a class="btn solid fab" id="fab" href="photobooth.html" aria-hidden="true" tabindex="-1">Take a photo</a>
+
 <!-- lightbox -->
 <div id="lb" role="dialog" aria-modal="true" aria-label="Photo viewer" hidden>
   <div class="bar">
@@ -182,7 +189,11 @@ const who = it => (it.nama && it.nama.trim()) || "A guest";
 const when = t => { try { return new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; } };
 
 $("#eyebrow").textContent = `${C.mempelai}  ·  ${C.tanggal}`;
-["#to-booth", "#take"].forEach(s => $(s).href = C.photobooth);
+["#to-booth", "#take", "#fab"].forEach(s => $(s).href = C.photobooth);
+if (window.IntersectionObserver) new IntersectionObserver(([e]) => {
+  const show = !e.isIntersecting && e.boundingClientRect.top < 0;
+  $("#fab").classList.toggle("show", show); $("#fab").setAttribute("aria-hidden", String(!show)); $("#fab").tabIndex = show ? 0 : -1;
+}).observe($(".actions"));
 $("#to-inv").href = C.undangan || "./";
 
 function state(html) { const s = $("#state"); s.hidden = !html; s.innerHTML = html || ""; }
