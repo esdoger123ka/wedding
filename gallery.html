@@ -73,6 +73,7 @@ main{max-width:1240px;margin:0 auto;padding:6px 14px calc(56px + env(safe-area-i
 .card:hover img{transform:scale(1.02)}
 .card .who{display:block;padding:7px 1px 0;font-size:12.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card:hover .who{color:var(--fg)}
+.card .msg{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;padding:2px 1px 0;font-family:var(--serif);font-style:italic;font-size:16px;line-height:1.25;color:var(--fg)}
 .card.new::after{content:"New";position:absolute;top:8px;left:8px;font-size:10px;letter-spacing:.2em;text-transform:uppercase;padding:4px 7px;background:var(--fg);color:var(--bg)}
 
 .state{text-align:center;padding:60px 18px;color:var(--dim);max-width:420px;margin:0 auto}
@@ -100,6 +101,8 @@ main{max-width:1240px;margin:0 auto;padding:6px 14px calc(56px + env(safe-area-i
 #lb .nav:hover{border-color:var(--fg)}
 #lb .prev{left:14px} #lb .next{right:14px}
 @media (max-width:719px){#lb .nav{display:none}}
+#lb-msg{padding:4px 18px 0;text-align:center;font-family:var(--serif);font-style:italic;font-size:20px;line-height:1.25;max-width:640px;margin:0 auto}
+#lb-msg:empty{display:none}
 #lb .foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px calc(14px + env(safe-area-inset-bottom));color:var(--dim)}
 #lb .foot a{font-size:13px;text-underline-offset:4px;text-decoration-color:var(--faint)}
 #lb .foot a:hover{color:var(--fg)}
@@ -107,12 +110,15 @@ main{max-width:1240px;margin:0 auto;padding:6px 14px calc(56px + env(safe-area-i
 
 /* ---------- SLIDESHOW ---------- */
 #ss{position:fixed;inset:0;z-index:60;background:#000;cursor:none}
-#ss .slide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:28px 28px calc(118px + env(safe-area-inset-bottom));opacity:0;transition:opacity 1.2s ease}
+#ss .slide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:28px 28px calc(150px + env(safe-area-inset-bottom));opacity:0;transition:opacity 1.2s ease}
 #ss .slide.on{opacity:1}
 #ss .slide .blur{position:absolute;inset:-40px;background:center/cover no-repeat;filter:blur(40px) brightness(.35);transform:scale(1.1)}
 #ss .slide img{position:relative;max-width:100%;max-height:100%;object-fit:contain;box-shadow:0 30px 90px rgba(0,0,0,.7)}
 #ss .cred{position:absolute;left:0;right:0;bottom:calc(26px + env(safe-area-inset-bottom));text-align:center;pointer-events:none;text-shadow:0 2px 20px rgba(0,0,0,.7)}
+#ss .cred i{display:block;font-family:var(--serif);font-size:clamp(22px,3vw,40px);line-height:1.15;max-width:min(92vw,1100px);margin:0 auto 6px;padding:0 16px}
+#ss .cred i:empty{display:none}
 #ss .cred b{display:block;font-family:var(--serif);font-style:italic;font-weight:400;font-size:clamp(22px,3.4vw,40px);line-height:1.15}
+#ss .cred i:not(:empty)+b{font-family:var(--sans);font-style:normal;font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim)}
 #ss .cred span{display:block;margin-top:4px}
 #ss .exit{position:absolute;top:calc(14px + env(safe-area-inset-top));right:14px;opacity:0;transition:opacity .3s;cursor:pointer}
 #ss.show-ui{cursor:default} #ss.show-ui .exit{opacity:1}
@@ -160,6 +166,7 @@ main{max-width:1240px;margin:0 auto;padding:6px 14px calc(56px + env(safe-area-i
     <img id="lb-img" alt="">
     <button class="nav next" id="lb-next" aria-label="Next photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
   </div>
+  <p id="lb-msg"></p>
   <div class="foot">
     <span class="cap" id="lb-pos"></span>
     <a id="lb-open" href="#" target="_blank" rel="noopener">Open full size</a>
@@ -170,7 +177,7 @@ main{max-width:1240px;margin:0 auto;padding:6px 14px calc(56px + env(safe-area-i
 <div id="ss" hidden>
   <div class="slide"><div class="blur"></div><img alt=""></div>
   <div class="slide"><div class="blur"></div><img alt=""></div>
-  <div class="cred"><b id="ss-who"></b><span class="cap dim" id="ss-sub"></span></div>
+  <div class="cred"><i id="ss-msg"></i><b id="ss-who"></b><span class="cap dim" id="ss-sub"></span></div>
   <button class="btn exit" id="ss-x">Exit slideshow</button>
   <div class="empty" id="ss-empty" hidden><p class="dim">Waiting for the first photo…</p></div>
 </div>
@@ -221,6 +228,7 @@ function card(it, isNew) {
   loadImg(img, thumb(it.id, 640), () => b.remove());
   const cap = document.createElement("span"); cap.className = "who"; cap.textContent = who(it);
   b.append(img, cap);
+  if (it.pesan) { const q = document.createElement("span"); q.className = "msg"; q.textContent = "\u201C" + it.pesan + "\u201D"; b.append(q); }
   b.addEventListener("click", () => openLb(items.indexOf(it)));
   return b;
 }
@@ -270,6 +278,7 @@ function showLb() {
   img.onload = () => img.classList.remove("loading");
   loadImg(img, thumb(it.id, 1600));
   $("#lb-who").textContent = who(it);
+  $("#lb-msg").textContent = it.pesan ? "\u201C" + it.pesan + "\u201D" : "";
   $("#lb-pos").textContent = `${idx + 1} / ${items.length}`;
   $("#lb-open").href = viewUrl(it.id);
   [items[idx + 1], items[idx - 1]].forEach(n => { if (n) new Image().src = thumb(n.id, 1600); });
@@ -297,7 +306,7 @@ const SS = (() => {
     clearTimeout(t);
     if (!on) return;
     $("#ss-empty").hidden = items.length > 0;
-    if (!items.length) { slides.forEach(s => s.classList.remove("on")); $("#ss-who").textContent = ""; $("#ss-sub").textContent = ""; t = setTimeout(next, 5000); return; }
+    if (!items.length) { slides.forEach(s => s.classList.remove("on")); $("#ss-msg").textContent = ""; $("#ss-who").textContent = ""; $("#ss-sub").textContent = ""; t = setTimeout(next, 5000); return; }
     // foto baru didahulukan, sisanya berputar dari yang terbaru
     let it = queue.shift();
     if (!it) { cur = (cur + 1) % items.length; it = items[cur]; }
@@ -306,6 +315,7 @@ const SS = (() => {
     const go = () => {
       s.querySelector(".blur").style.backgroundImage = `url("${src}")`;
       slides.forEach(x => x.classList.toggle("on", x === s));
+      $("#ss-msg").textContent = it.pesan ? "\u201C" + it.pesan + "\u201D" : "";
       $("#ss-who").textContent = who(it);
       $("#ss-sub").textContent = when(it.t);
       k = 1 - k;
