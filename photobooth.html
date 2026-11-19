@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="#0E0D0C">
+<meta name="theme-color" content="#FBFAF7">
 <title>Photobooth · Bagaskara &amp; Farisa</title>
 <meta name="description" content="Take a photo with the wedding frame of Bagaskara & Farisa.">
 <meta property="og:title" content="Photobooth · Bagaskara & Farisa">
@@ -56,6 +56,7 @@ a{color:inherit}
 .link{font-size:13px;color:var(--dim);text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--faint);padding:8px 4px}
 .link:hover{color:var(--fg)}
 
+body[data-view="start"]{--bg:#FBFAF7; --fg:#141312; --dim:rgba(20,19,18,.66); --faint:rgba(20,19,18,.3); --line:rgba(20,19,18,.26); --panel:#EEEBE5;}
 .view{position:fixed;inset:0;display:none;height:100dvh}
 body[data-view="start"] #v-start,
 body[data-view="booth"] #v-booth,
@@ -64,7 +65,7 @@ body[data-view="result"] #v-result{display:flex}
 /* ---------- START ---------- */
 #v-start{flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px 22px calc(28px + env(safe-area-inset-bottom));overflow-y:auto}
 #v-start .bgc{position:absolute;inset:0;z-index:-1;background:var(--bg) center/cover no-repeat}
-#v-start .bgc::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(14,13,12,.8),rgba(14,13,12,.72) 45%,rgba(14,13,12,.96))}
+#v-start .bgc::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(251,250,247,.86),rgba(251,250,247,.8) 45%,rgba(251,250,247,.97))}
 #v-start h1{font-family:var(--serif);font-style:italic;font-weight:400;font-size:clamp(58px,17vw,104px);line-height:.95;margin:14px 0 16px}
 #v-start .lead{max-width:340px;color:var(--dim);font-size:15px;margin-bottom:26px}
 .field{width:min(100%,320px);margin-bottom:18px;text-align:left}
@@ -536,7 +537,7 @@ const el = {
 const F = () => { const f = FRAMES[S.frame]; return S.single && f.single ? f.single : f; };
 const frameName = () => S.frame + (S.single && FRAMES[S.frame].single ? "-1" : "");
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const view = v => { document.body.dataset.view = v; if (v === "booth") requestAnimationFrame(layout); };
+const view = v => { document.body.dataset.view = v; const tc = document.querySelector('meta[name="theme-color"]'); if (tc) tc.content = v === "start" ? "#FBFAF7" : "#0E0D0C"; if (v === "booth") requestAnimationFrame(layout); };
 
 /* ============================================================
    PRATINJAU
