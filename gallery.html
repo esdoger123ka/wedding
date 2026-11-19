@@ -187,7 +187,7 @@ main{max-width:1240px;margin:0 auto;padding:6px 14px calc(56px + env(safe-area-i
 "use strict";
 const $ = s => document.querySelector(s);
 const C = CONFIG;
-const AR = { portrait: "4/5", strip: "9/16", vintage: "9/16", story: "9/16" };
+const AR = { portrait: "4/5", bloom: "4/5", strip: "9/16", vintage: "9/16", story: "9/16", polka: "9/16", stars: "9/16", stripes: "9/16", flower: "9/16", leak: "9/16" };
 let items = [], seen = new Set(), firstLoad = true, timer = 0;
 
 const thumb = (id, w) => `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w${w}`;
@@ -220,7 +220,7 @@ function loadImg(img, src, onFail) {
 function card(it, isNew) {
   const b = document.createElement("button");
   b.type = "button"; b.className = "card" + (isNew ? " new" : "");
-  b.style.setProperty("--ar", AR[it.frame] || "9/16");
+  b.style.setProperty("--ar", /-1$/.test(it.frame) ? "4/5" : (AR[it.frame] || "9/16"));
   b.setAttribute("aria-label", `Photo by ${who(it)}`);
   const img = document.createElement("img");
   img.alt = `Photobooth picture by ${who(it)}`; img.loading = "lazy"; img.decoding = "async";
